@@ -1,0 +1,101 @@
+<controls:ProWindow x:Class="MikaelsPolylineToolset.MetadataEditor.MetadataEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ArcGIS.Desktop.Framework.Controls;assembly=ArcGIS.Desktop.Framework"
+        xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        Title="Metadata Editor" Height="740" Width="620"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="Pick a feature layer from the map (shapefile or file geodatabase feature class), or browse to one on disk, then edit its metadata -- Title, Tags, Summary, Description, Credits, and Use Limitation -- and save it back."/>
+
+        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,10">
+            <CheckBox x:Name="UseTemplateCheck" Content="Use Metadata Template" VerticalAlignment="Center" Checked="UseTemplateCheck_Checked" Unchecked="UseTemplateCheck_Unchecked"/>
+            <Button x:Name="FillTemplateButton" Content="Fill Template..." Padding="8,2" Margin="12,0,0,0" IsEnabled="False" Click="FillTemplateButton_Click"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,6,8,6" Text="Map Feature Layers:"/>
+        <ComboBox x:Name="MapLayerCombo" Grid.Row="2" Grid.Column="1" Margin="0,6,6,6" SelectionChanged="MapLayerCombo_SelectionChanged"/>
+        <Button x:Name="RefreshLayersButton" Grid.Row="2" Grid.Column="2" Content="Refresh" Padding="8,2" Margin="0,6,0,6" Click="RefreshLayersButton_Click"/>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,6,8,6" Text="Feature Class:"/>
+        <TextBox x:Name="ShapefilePathTextBox" Grid.Row="3" Grid.Column="1" Margin="0,6,6,6" VerticalContentAlignment="Center"/>
+        <Button x:Name="BrowseButton" Grid.Row="3" Grid.Column="2" Content="Browse..." Padding="8,2" Margin="0,6,0,6" Click="BrowseButton_Click"/>
+
+        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,10">
+            <Button x:Name="LoadButton" Content="Load Metadata" Width="120" Padding="4" Click="LoadButton_Click"/>
+            <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Margin="10,0,0,0" TextWrapping="Wrap" Foreground="DarkRed"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,6,8,6" Text="Title:"/>
+                <TextBox x:Name="TitleTextBox" Grid.Row="0" Grid.Column="1" Margin="0,6,0,6"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,6,8,6" Text="Tags:"/>
+                <TextBox x:Name="TagsTextBox" Grid.Row="1" Grid.Column="1" Margin="0,6,0,6"
+                         ToolTip="Comma-separated list of tags/keywords"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,6,8,6" Text="Summary:"/>
+                <TextBox x:Name="SummaryTextBox" Grid.Row="2" Grid.Column="1" Margin="0,6,0,6" Height="50"
+                         TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,6,8,6" Text="Description:"/>
+                <TextBox x:Name="DescriptionTextBox" Grid.Row="3" Grid.Column="1" Margin="0,6,0,6" Height="110"
+                         TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,6,8,6" Text="Credits:"/>
+                <TextBox x:Name="CreditsTextBox" Grid.Row="4" Grid.Column="1" Margin="0,6,0,6" Height="50"
+                         TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,6,8,6" Text="Use Limitation:"/>
+                <TextBox x:Name="ConstraintsTextBox" Grid.Row="5" Grid.Column="1" Margin="0,6,0,6" Height="50"
+                         TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                         ToolTip="One constraint per line"/>
+            </Grid>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,4" Text="Log:"/>
+        <Border Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" BorderBrush="Gray" BorderThickness="1" Height="70">
+            <wfi:WindowsFormsHost x:Name="LogHost"/>
+        </Border>
+
+        <StackPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button x:Name="SaveButton" Content="Save" Width="90" Padding="4" Margin="0,0,8,0" Click="SaveButton_Click" IsDefault="True"/>
+            <Button x:Name="CloseButton" Content="Close" Width="90" Padding="4" Click="CloseButton_Click" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</controls:ProWindow>

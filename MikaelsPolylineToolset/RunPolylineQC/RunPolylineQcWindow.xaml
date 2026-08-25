@@ -1,0 +1,246 @@
+<controls:ProWindow x:Class="MikaelsPolylineToolset.RunPolylineQC.RunPolylineQcWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ArcGIS.Desktop.Framework.Controls;assembly=ArcGIS.Desktop.Framework"
+        xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        Title="Run Polyline QC Checks" Height="780" Width="640"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="140"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Runs the polyline QC tools in sequence. Each step can be skipped, checked against an expected false-positive count (a mismatch aborts the whole run), and optionally exported to the project's default geodatabase under its own fixed name."/>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal" Margin="0,3,0,3">
+                <TextBlock Text="Input Polylines:" Width="200" VerticalAlignment="Center"/>
+                <ComboBox x:Name="LineLayerCombo" Width="380" SelectionChanged="LineLayerCombo_SelectionChanged"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,3,0,3">
+                <TextBlock Text="Anchor Polygons (Isolated Lines, optional):" Width="200" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <ComboBox x:Name="AnchorPolyCombo" Width="380"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,3,0,3">
+                <TextBlock Text="Boundary Polygons:" Width="200" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <ComboBox x:Name="WaterPolyCombo" Width="380" SelectionChanged="WaterPolyCombo_SelectionChanged"/>
+            </StackPanel>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <GroupBox Header="1. Isolated Lines" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S1_SkipCheck" Content="Skip this step"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Snap Tolerance:" Width="160" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S1_ToleranceText" Width="100" Text="0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S1_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S1_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S1_ExportCheck" Content="Export to Feature Class (IsolatedLinesOutput)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="2. Crossing Lines" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S2_SkipCheck" Content="Skip this step"/>
+                        <CheckBox x:Name="S2_IncludeOverlapsCheck" Content="Also select lines that partially overlap" Margin="0,4,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S2_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S2_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S2_ExportCheck" Content="Export to Feature Class (CrossingLinesOutput)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="3. Overlapping Lines" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S3_SkipCheck" Content="Skip this step"/>
+                        <CheckBox x:Name="S3_ExactOnlyCheck" Content="Exact duplicates only" Margin="0,4,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Min Shared Length:" Width="160" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S3_MinLengthText" Width="100" Text="0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S3_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S3_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S3_ExportCheck" Content="Export to Feature Class (OverlappingLinesOutput)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="4. Converging Ends" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S4_SkipCheck" Content="Skip this step"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Snap Tolerance:" Width="160" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S4_ToleranceText" Width="100" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S4_ExactlyTwoCheck" Content="Only flag nodes where exactly two lines converge" Margin="0,4,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S4_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S4_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S4_ExportCheck" Content="Export to Feature Class (ConvergingEndsOutput)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="5. N-Valence Junctions (Run 1)" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S5_SkipCheck" Content="Skip this step"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Valence:" Width="160" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S5_ValenceText" Width="100" Text="3"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S5_OnePerJunctionCheck" Content="Select only ONE polyline per junction" Margin="0,4,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Cluster Tolerance (blank = layer XY tol):" Width="220" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                            <TextBox x:Name="S5_ClusterTolText" Width="100"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S5_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S5_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S5_ExportCheck" Content="Export to Feature Class (ValenceJunctionsOutput1)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="6. N-Valence Junctions (Run 2)" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S6_SkipCheck" Content="Skip this step"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Valence:" Width="160" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S6_ValenceText" Width="100" Text="4"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S6_OnePerJunctionCheck" Content="Select only ONE polyline per junction" Margin="0,4,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Cluster Tolerance (blank = layer XY tol):" Width="220" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                            <TextBox x:Name="S6_ClusterTolText" Width="100"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S6_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S6_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S6_ExportCheck" Content="Export to Feature Class (ValenceJunctionsOutput2)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="7. Edge-Touching Polylines" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S7_SkipCheck" Content="Skip this step"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Snap Tolerance (map units):" Width="180" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S7_ToleranceText" Width="100" Text="0.01"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S7_TouchingOnlyCheck" Content="Select only the touching lines" Margin="0,4,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S7_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S7_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S7_ExportCheck" Content="Export to Feature Class (EdgeTouchingPolylinesOutput)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="8. Polyline Intersect Points (uses Boundary Polygons)" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S8_SkipCheck" Content="Skip this step"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Snap Tolerance:" Width="160" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S8_ToleranceText" Width="100" Text="0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S8_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S8_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S8_ExportCheck" Content="Export to Feature Class (PolylineIntersectPointsOutput)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="9. Validate Inflow/Outflow (uses Boundary Polygons)" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S9_SkipCheck" Content="Skip this step"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Boundary Type Field:" Width="180" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="S9_TypeFieldCombo" Width="200" SelectionChanged="S9_TypeFieldCombo_SelectionChanged"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Ocean Attribute Value:" Width="180" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="S9_OceanValueCombo" Width="200" IsEditable="True"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Snap Tolerance:" Width="180" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S9_ToleranceText" Width="100" Text="0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S9_FpCheck" Content="Enable False Positive Check (CHECK-status count), expected:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S9_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S9_ExportCheck" Content="Export to Feature Class (InflowOutflowValidationOutput)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="10. Check Vertex Count By Attribute" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S10_SkipCheck" Content="Skip this step"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Attribute Field:" Width="160" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="S10_FieldCombo" Width="200" SelectionChanged="S10_FieldCombo_SelectionChanged"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Field Value:" Width="160" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="S10_FieldValueCombo" Width="200" IsEditable="True"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Expected Vertex Count:" Width="160" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S10_ExpectedText" Width="100" Text="2"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S10_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S10_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S10_ExportCheck" Content="Export to Feature Class (VertexCountOutput)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="11. Flag Unconnected Polyline Ends (uses Boundary Polygons)" Margin="0,0,0,8">
+                    <StackPanel Margin="6">
+                        <CheckBox x:Name="S11_SkipCheck" Content="Skip this step"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Match Tolerance:" Width="160" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S11_ToleranceText" Width="100" Text="0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox x:Name="S11_FpCheck" Content="Enable False Positive Check, expected count:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="S11_FpThresholdText" Width="60" Margin="6,0,0,0" Text="0"/>
+                        </StackPanel>
+                        <CheckBox x:Name="S11_ExportCheck" Content="Export to Feature Class (UnconnectedEndsOutput)" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="3" Margin="0,8,0,4" Text="Log:"/>
+        <Border Grid.Row="4" BorderBrush="Gray" BorderThickness="1">
+            <wfi:WindowsFormsHost x:Name="LogHost"/>
+        </Border>
+
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button x:Name="RunButton" Content="Run All" Width="100" Padding="4" Margin="0,0,8,0" Click="RunButton_Click" IsDefault="True"/>
+            <Button x:Name="CloseButton" Content="Close" Width="90" Padding="4" Click="CloseButton_Click" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</controls:ProWindow>

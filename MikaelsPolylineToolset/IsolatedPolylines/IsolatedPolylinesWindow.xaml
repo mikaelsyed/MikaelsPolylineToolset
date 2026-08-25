@@ -1,0 +1,58 @@
+<controls:ProWindow x:Class="MikaelsPolylineToolset.IsolatedPolylines.IsolatedPolylinesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ArcGIS.Desktop.Framework.Controls;assembly=ArcGIS.Desktop.Framework"
+        xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        Title="Select Isolated Polylines" Height="420" Width="520"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="Selects line features whose start and end points are not shared with any other line in the layer, and (optionally) are not on the edge of an anchor polygon."/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,6,8,6" Text="Input Line Layer:"/>
+        <ComboBox x:Name="LineLayerCombo" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,6,0,6"/>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,6,8,6" Text="Snap Tolerance:"/>
+        <TextBox x:Name="ToleranceTextBox" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,6,0,6" Text="0"/>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,6,8,6" Text="Anchor Polygons:"/>
+        <ComboBox x:Name="PolygonLayerCombo" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,6,0,6"/>
+
+        <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,6,8,6" Text="Output Feature Class:"/>
+        <TextBox x:Name="OutputPathTextBox" Grid.Row="4" Grid.Column="1" Margin="0,6,6,6" VerticalContentAlignment="Center"/>
+        <Button x:Name="BrowseButton" Grid.Row="4" Grid.Column="2" Content="Browse..." Padding="8,2" Margin="0,6,0,6" Click="BrowseButton_Click"/>
+
+        <CheckBox x:Name="UseDefaultGdbCheck" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,6"
+                  Content="Use project default geodatabase for output"/>
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,6,0,4" Text="Log:"/>
+        <Border Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" BorderBrush="Gray" BorderThickness="1">
+            <wfi:WindowsFormsHost x:Name="LogHost"/>
+        </Border>
+
+        <StackPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button x:Name="RunButton" Content="Run" Width="90" Padding="4" Margin="0,0,8,0" Click="RunButton_Click" IsDefault="True"/>
+            <Button x:Name="CloseButton" Content="Close" Width="90" Padding="4" Click="CloseButton_Click" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</controls:ProWindow>

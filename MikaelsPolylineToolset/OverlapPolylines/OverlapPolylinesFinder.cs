@@ -1,0 +1,125 @@
+using ArcGIS.Core.Data;
+using ArcGIS.Core.Geometry;
+using ArcGIS.Desktop.Mapping;
+using System;
+using System.Collections.Generic;
+
+namespace MikaelsPolylineToolset.OverlapPolylines
+{
+    /// <summary>
+    /// Finds line features that share a coincident segment with another line in the same
+    /// layer -- exact duplicates, reversed duplicates, or partial overlaps. Ported from
+    /// OverlapLineFinder.pyt. Must be called from within QueuedTask.Run.
+    /// </summary>
+    internal static class OverlapPolylinesFinder
+    {
+        public static List<long> FindOverlappingLineOids(
+            FeatureLayer lineLayer,
+            bool exactOnly,
+            double minLength,
+            Action<string> log)
+        {
+            var feats = new List<(long Oid, Polyline Geom)>();
+            using (var cursor = lineLayer.Search(null))
+            {
+                while (cursor.MoveNext())
+                {
+                    using var feature = (Feature)cursor.Current;
+                    long oid = feature.GetObjectID();
+                    if (feature.GetShape() is not Polyline geom || geom.IsEmpty)
+                    {
+                        log($"OID {oid} has null/empty geometry; skipped.");
+                        continue;
+                    }
+                    feats.Add((oid, geom));
+                }
+            }
+
+            int n = feats.Count;
+            if (n < 2)
+            {
+                log("Fewer than two valid lines; nothing to compare.");
+                return new List<long>();
+            }
+
+            double sumW = 0, sumH = 0;
+            foreach (var (_, g) in feats)
+            {
+                var e = g.Extent;
+                sumW += e.XMax - e.XMin;
+                sumH += e.YMax - e.YMin;
+            }
+            double cell = Math.Max(sumW / n, sumH / n);
+            if (cell <= 0) cell = 1.0;
+
+            IEnumerable<(long, long)> CellsForExtent(Envelope e)
+            {
+                long c0 = (long)Math.Floor(e.XMin / cell);
+                long c1 = (long)Math.Floor(e.XMax / cell);
+                long r0 = (long)Math.Floor(e.YMin / cell);
+                long r1 = (long)Math.Floor(e.YMax / cell);
+                for (long c = c0; c <= c1; c++)
+                    for (long r = r0; r <= r1; r++)
+                        yield return (c, r);
+            }
+
+            var grid = new Dictionary<(long, long), List<int>>();
+            for (int i = 0; i < n; i++)
+            {
+                foreach (var key in CellsForExtent(feats[i].Geom.Extent))
+                {
+                    if (!grid.TryGetValue(key, out var list))
+                        grid[key] = list = new List<int>();
+                    list.Add(i);
+                }
+            }
+
+            bool IsOverlap(Polyline g1, Polyline g2)
+            {
+                if (exactOnly)
+                    return GeometryEngine.Instance.Equals(g1, g2);
+                try
+                {
+                    var inter = GeometryEngine.Instance.Intersection(g1, g2, GeometryDimensionType.EsriGeometry1Dimension);
+                    return inter is Polyline pl && !pl.IsEmpty && pl.Length > minLength;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+
+            var overlapping = new HashSet<long>();
+            for (int i = 0; i < n; i++)
+            {
+                var (oidI, gI) = feats[i];
+                var eI = gI.Extent;
+                var candidates = new HashSet<int>();
+                foreach (var key in CellsForExtent(eI))
+                    if (grid.TryGetValue(key, out var list))
+                        candidates.UnionWith(list);
+
+                foreach (var j in candidates)
+                {
+                    if (j <= i) continue;
+                    var (oidJ, gJ) = feats[j];
+                    var eJ = gJ.Extent;
+                    if (eI.XMin > eJ.XMax || eJ.XMin > eI.XMax ||
+                        eI.YMin > eJ.YMax || eJ.YMin > eI.YMax)
+                        continue;
+
+                    if (IsOverlap(gI, gJ))
+                    {
+                        overlapping.Add(oidI);
+                        overlapping.Add(oidJ);
+                    }
+                }
+            }
+
+            var result = new List<long>(overlapping);
+            result.Sort();
+            log($"Found {result.Count} overlapping line(s) out of {n} feature(s).");
+            return result;
+        }
+    }
+}

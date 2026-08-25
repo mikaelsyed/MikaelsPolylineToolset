@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ArcGIS defaultAssembly="MikaelsPolylineToolset.dll"
+        defaultNamespace="MikaelsPolylineToolset"
+        xmlns="http://schemas.esri.com/DADF/Registry"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
+
+  <AddInInfo id="{0aa622c8-779a-4224-8a4b-d90f36450ccc}" version="1.0" desktopVersion="3.5.57366" product="ArcGISPro">
+    <Name>MikaelsPolylineToolset</Name>
+    <Description>MikaelsPolylineToolset description</Description>
+    <Image>Images\AddinDesktop32.png</Image>
+    <Author>Mikael.Syed</Author>
+    <Company>Fugro</Company>
+    <Date>8/17/2026 11:25:15 AM</Date>
+    <Subject>Framework</Subject>
+    <!-- Note subject can be one or more of these topics:
+                    Content, Framework, Editing, Geodatabase, Geometry, Geoprocessing, Layouts, Map Authoring, Map Exploration -->
+  </AddInInfo>
+
+  <modules>
+    <insertModule id="MikaelsPolylineToolset_Module" className="Module1" autoLoad="false" caption="Module1">
+      <tabs>
+        <tab id="MikaelsPolylineToolset_Tab1" caption="PolylineQC">
+          <group refID="MikaelsPolylineToolset_RunAllGroup"/>
+          <group refID="MikaelsPolylineToolset_FlowlineQCGroup"/>
+          <group refID="MikaelsPolylineToolset_FlowlineEditGroup"/>
+          <group refID="MikaelsPolylineToolset_BoundaryQCGroup"/>
+          <group refID="MikaelsPolylineToolset_RasterQCGroup"/>
+          <group refID="MikaelsPolylineToolset_MetadataGroup"/>
+        </tab>
+      </tabs>
+
+      <groups>
+        <group id="MikaelsPolylineToolset_RunAllGroup" caption="Batch QC" appearsOnAddInTab="false">
+          <button refID="MikaelsPolylineToolset_RunPolylineQcButton" size="large"/>
+        </group>
+        <group id="MikaelsPolylineToolset_FlowlineQCGroup" caption="Polyline QC" appearsOnAddInTab="false">
+          <button refID="MikaelsPolylineToolset_IsolatedPolylinesButton"/>
+          <button refID="MikaelsPolylineToolset_CrossingPolylinesButton"/>
+          <button refID="MikaelsPolylineToolset_OverlapPolylinesButton"/>
+          <button refID="MikaelsPolylineToolset_InvalidJunctionsButton"/>
+          <button refID="MikaelsPolylineToolset_ConvergingEndsButton"/>
+          <button refID="MikaelsPolylineToolset_EdgeTouchingButton"/>
+          <button refID="MikaelsPolylineToolset_NValenceJunctionsButton"/>
+          <button refID="MikaelsPolylineToolset_VertexCountCheckButton"/>
+          <button refID="MikaelsPolylineToolset_UnconnectedPolylineEndsButton"/>
+        </group>
+        <group id="MikaelsPolylineToolset_FlowlineEditGroup" caption="Polyline Editing" appearsOnAddInTab="false">
+          <button refID="MikaelsPolylineToolset_VertexConditioningButton"/>
+        </group>
+        <group id="MikaelsPolylineToolset_BoundaryQCGroup" caption="Boundary QC" appearsOnAddInTab="false">
+          <button refID="MikaelsPolylineToolset_PolylineIntersectPointsButton"/>
+          <button refID="MikaelsPolylineToolset_ValidateInflowOutflowButton"/>
+        </group>
+        <group id="MikaelsPolylineToolset_RasterQCGroup" caption="Raster QC" appearsOnAddInTab="false">
+          <button refID="MikaelsPolylineToolset_RasterOverlapButton"/>
+        </group>
+        <group id="MikaelsPolylineToolset_MetadataGroup" caption="Metadata" appearsOnAddInTab="false">
+          <button refID="MikaelsPolylineToolset_MetadataEditorButton" size="large"/>
+          <button refID="MikaelsPolylineToolset_MetadataViewerButton" size="large"/>
+          <button refID="MikaelsPolylineToolset_MetadataExportButton" size="large"/>
+        </group>
+      </groups>
+
+      <controls>
+        <button id="MikaelsPolylineToolset_RunPolylineQcButton" caption="Run Polyline QC Checks"
+                className="MikaelsPolylineToolset.RunPolylineQC.RunPolylineQcButton"
+                loadOnClick="true"
+                smallImage="Images\RunPolylineQC16.png"
+                largeImage="Images\RunPolylineQC32.png">
+          <tooltip heading="Run Polyline QC Checks">
+            Runs the polyline QC tools in sequence, each with its own skip toggle, false-positive check, and export-to-default-geodatabase option.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_IsolatedPolylinesButton" caption="Isolated Polylines"
+                className="MikaelsPolylineToolset.IsolatedPolylines.IsolatedPolylinesButton"
+                loadOnClick="true"
+                smallImage="Images\IsolatedPolylines16.png"
+                largeImage="Images\IsolatedPolylines32.png">
+          <tooltip heading="Select Isolated Polylines">
+            Select line features whose start and end points aren't shared with any other line, optionally anchored by polygon edges.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_CrossingPolylinesButton" caption="Crossing Polylines"
+                className="MikaelsPolylineToolset.CrossingPolylines.CrossingPolylinesButton"
+                loadOnClick="true"
+                smallImage="Images\CrossingPolylines16.png"
+                largeImage="Images\CrossingPolylines32.png">
+          <tooltip heading="Select Crossing Polylines">
+            Select lines that cross another line in the layer (an "X" intersection interior to both), optionally including partial overlaps.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_OverlapPolylinesButton" caption="Overlap Polylines"
+                className="MikaelsPolylineToolset.OverlapPolylines.OverlapPolylinesButton"
+                loadOnClick="true"
+                smallImage="Images\OverlapPolylines16.png"
+                largeImage="Images\OverlapPolylines32.png">
+          <tooltip heading="Select Overlapping Polylines">
+            Select lines that share a coincident segment with another line: exact duplicates, reversed duplicates, or partial overlaps.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_InvalidJunctionsButton" caption="Invalid Junctions"
+                className="MikaelsPolylineToolset.InvalidJunctions.InvalidJunctionsButton"
+                loadOnClick="true"
+                smallImage="Images\InvalidJunctions16.png"
+                largeImage="Images\InvalidJunctions32.png">
+          <tooltip heading="Select Invalid Junctions">
+            Select lines at nodes where two or more directed lines start (the flow splits) -- invalid in a directed line network.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_ConvergingEndsButton" caption="Converging Ends"
+                className="MikaelsPolylineToolset.ConvergingEnds.ConvergingEndsButton"
+                loadOnClick="true"
+                smallImage="Images\ConvergingEnds16.png"
+                largeImage="Images\ConvergingEnds32.png">
+          <tooltip heading="Select Converging Ends">
+            Select lines at nodes where two or more directed lines end and none start -- converging flow with no continuation.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_EdgeTouchingButton" caption="Edge-Touching Polylines"
+                className="MikaelsPolylineToolset.EdgeTouchingPolylines.EdgeTouchingButton"
+                loadOnClick="true"
+                smallImage="Images\EdgeTouching16.png"
+                largeImage="Images\EdgeTouching32.png">
+          <tooltip heading="Select Edge-Touching Polylines">
+            Select polylines whose start or end point lands on the interior (edge) of another polyline rather than its start/end vertex.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_NValenceJunctionsButton" caption="N-Valence Junctions"
+                className="MikaelsPolylineToolset.NValenceJunctions.NValenceJunctionsButton"
+                loadOnClick="true"
+                smallImage="Images\NValenceJunctions16.png"
+                largeImage="Images\NValenceJunctions32.png">
+          <tooltip heading="Select N-Valence Junctions">
+            Select polylines at junctions where exactly N endpoints (all starts or all ends) meet within a cluster tolerance.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_PolylineIntersectPointsButton" caption="Intersect Points"
+                className="MikaelsPolylineToolset.PolylineIntersectPoints.PolylineIntersectPointsButton"
+                loadOnClick="true"
+                smallImage="Images\PolylineIntersectPoints16.png"
+                largeImage="Images\PolylineIntersectPoints32.png">
+          <tooltip heading="Polyline Intersect Points">
+            Generates a point wherever a polyline touches a polygon layer's boundary (crossings and touch/tangent cases), with a connected-line count at each point.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_ValidateInflowOutflowButton" caption="Validate Inflow/Outflow"
+                className="MikaelsPolylineToolset.ValidateInflowOutflow.ValidateInflowOutflowButton"
+                loadOnClick="true"
+                smallImage="Images\ValidateInflowOutflow16.png"
+                largeImage="Images\ValidateInflowOutflow32.png">
+          <tooltip heading="Validate Inflow/Outflow">
+            At each polyline/polygon-boundary touch point, flags OK (2+ polylines connect), OCEAN (1 polyline, nearest polygon matches the configured boundary type value), or CHECK (1 polyline, does not match).
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_VertexCountCheckButton" caption="Vertex Count Check"
+                className="MikaelsPolylineToolset.VertexCountCheck.VertexCountCheckButton"
+                loadOnClick="true"
+                smallImage="Images\VertexCountCheck16.png"
+                largeImage="Images\VertexCountCheck32.png">
+          <tooltip heading="Check Vertex Count By Attribute">
+            Flags polylines matching a chosen attribute value (e.g. a shared feature ID) that do NOT have exactly the expected vertex count.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_VertexConditioningButton" caption="Recondition Vertices"
+                className="MikaelsPolylineToolset.VertexConditioning.VertexConditioningButton"
+                loadOnClick="true"
+                smallImage="Images\VertexConditioning16.png"
+                largeImage="Images\VertexConditioning32.png">
+          <tooltip heading="Recondition Polyline Vertices">
+            Fixes vertex spacing (min/max) and enforces a monotonically non-increasing elevation profile from start to end using a DEM, within a bounded search radius. Preview first, then apply as an undoable edit.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_UnconnectedPolylineEndsButton" caption="Unconnected Ends"
+                className="MikaelsPolylineToolset.UnconnectedPolylineEnds.UnconnectedPolylineEndsButton"
+                loadOnClick="true"
+                smallImage="Images\UnconnectedPolylineEnds16.png"
+                largeImage="Images\UnconnectedPolylineEnds32.png">
+          <tooltip heading="Flag Unconnected Polyline Ends">
+            Flags polylines whose END point does not land on a polygon or on another polyline. Start points are never checked.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_RasterOverlapButton" caption="Raster % Overlap"
+                className="MikaelsPolylineToolset.RasterOverlap.RasterOverlapButton"
+                loadOnClick="true"
+                smallImage="Images\RasterOverlap16.png"
+                largeImage="Images\RasterOverlap32.png">
+          <tooltip heading="Raster % Overlap">
+            For each polyline, samples a raster along its length and reports what percentage sits on valid raster cells vs. off the raster entirely.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_MetadataEditorButton" caption="Metadata Editor"
+                className="MikaelsPolylineToolset.MetadataEditor.MetadataEditorButton"
+                loadOnClick="true"
+                smallImage="Images\MetadataEditor16.png"
+                largeImage="Images\MetadataEditor32.png">
+          <tooltip heading="Metadata Editor">
+            Pick a feature layer from the map (shapefile or file geodatabase feature class) or browse to one on disk, and edit its metadata (title, tags, summary, description, credits, use limitation), then save it back.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_MetadataViewerButton" caption="Metadata Viewer"
+                className="MikaelsPolylineToolset.MetadataViewer.MetadataViewerButton"
+                loadOnClick="true"
+                smallImage="Images\MetadataViewer16.png"
+                largeImage="Images\MetadataViewer32.png">
+          <tooltip heading="Metadata Viewer">
+            Pick a feature layer from the map (shapefile or file geodatabase feature class) or browse to one on disk, and view its metadata (title, tags, summary, description, credits, use limitation) read-only.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+        <button id="MikaelsPolylineToolset_MetadataExportButton" caption="Metadata Export"
+                className="MikaelsPolylineToolset.MetadataExport.MetadataExportButton"
+                loadOnClick="true"
+                smallImage="Images\MetadataExport16.png"
+                largeImage="Images\MetadataExport32.png">
+          <tooltip heading="Metadata Export">
+            Pick a feature layer from the map (shapefile or file geodatabase feature class) or browse to one on disk, and export its metadata (title, tags, summary, description, credits, use limitation) to a plain-text file in a folder you choose.
+            <disabledText></disabledText>
+          </tooltip>
+        </button>
+      </controls>
+
+    </insertModule>
+  </modules>
+</ArcGIS>
