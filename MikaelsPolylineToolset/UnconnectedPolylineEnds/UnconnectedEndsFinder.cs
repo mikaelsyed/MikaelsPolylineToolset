@@ -7,11 +7,12 @@ using System.Collections.Generic;
 namespace MikaelsPolylineToolset.UnconnectedPolylineEnds
 {
     /// <summary>
-    /// Flags flowlines whose END point does not land on a hydro polygon (interior or
-    /// boundary) or on any other flowline (edge or vertex). Start points are never checked --
-    /// headwater lines are expected to dangle at their upstream end. Ported from
-    /// FlowlineEndConnectivity.pyt (FlagUnconnectedPolylineEnds). Must be called from within
-    /// QueuedTask.Run.
+    /// Flags flowlines whose END point does not land on a polygon BOUNDARY or on any other
+    /// flowline (edge or vertex). Landing in a polygon's interior does not count -- a line
+    /// that dangles in the middle of a polygon, touching nothing else, is still unconnected.
+    /// Start points are never checked -- headwater lines are expected to dangle at their
+    /// upstream end. Ported from FlowlineEndConnectivity.pyt (FlagUnconnectedPolylineEnds).
+    /// Must be called from within QueuedTask.Run.
     /// </summary>
     internal static class UnconnectedEndsFinder
     {
@@ -49,7 +50,7 @@ namespace MikaelsPolylineToolset.UnconnectedPolylineEnds
             double tol = tolerance > 0 ? tolerance : (sr?.XYTolerance ?? 1e-6);
             log($"Match tolerance: {tol} map units");
 
-            var polys = new Dictionary<long, Polygon>();
+            var polyBoundaries = new Dictionary<long, Polyline>();
             var polyExtents = new Dictionary<long, Envelope>();
             if (polygonLayer != null)
             {
@@ -60,11 +61,12 @@ namespace MikaelsPolylineToolset.UnconnectedPolylineEnds
                     if (f.GetShape() is not Polygon pg || pg.IsEmpty) continue;
                     if (pg.SpatialReference != null && sr != null)
                         pg = (Polygon)GeometryEngine.Instance.Project(pg, sr);
-                    polys[f.GetObjectID()] = pg;
-                    polyExtents[f.GetObjectID()] = pg.Extent;
+                    long pid = f.GetObjectID();
+                    polyBoundaries[pid] = (Polyline)GeometryEngine.Instance.Boundary(pg);
+                    polyExtents[pid] = pg.Extent;
                 }
             }
-            log($"Loaded {polys.Count} hydro polygon(s).");
+            log($"Loaded {polyBoundaries.Count} polygon(s).");
 
             (Dictionary<(long, long), List<long>> Grid, double Cell) BuildGrid(Dictionary<long, Envelope> extents)
             {
@@ -109,7 +111,7 @@ namespace MikaelsPolylineToolset.UnconnectedPolylineEnds
             }
 
             var (lineGrid, lineCell) = BuildGrid(lineExtents);
-            var (polyGrid, polyCell) = polys.Count > 0 ? BuildGrid(polyExtents) : (new Dictionary<(long, long), List<long>>(), 1.0);
+            var (polyGrid, polyCell) = polyBoundaries.Count > 0 ? BuildGrid(polyExtents) : (new Dictionary<(long, long), List<long>>(), 1.0);
 
             var flagged = new List<long>();
             foreach (var kvp in endPts)
@@ -119,11 +121,11 @@ namespace MikaelsPolylineToolset.UnconnectedPolylineEnds
                 var pt = MapPointBuilderEx.CreateMapPoint(x, y, sr);
                 bool connected = false;
 
-                if (polys.Count > 0)
+                if (polyBoundaries.Count > 0)
                 {
                     foreach (var pid in Candidates(polyGrid, polyCell, x, y))
                     {
-                        if (GeometryEngine.Instance.Distance(polys[pid], pt) <= tol)
+                        if (GeometryEngine.Instance.Distance(polyBoundaries[pid], pt) <= tol)
                         {
                             connected = true;
                             break;
