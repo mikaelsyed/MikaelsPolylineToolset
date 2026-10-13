@@ -2,6 +2,7 @@ using ArcGIS.Desktop.Catalog;
 using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Windows;
 
 namespace MikaelsPolylineToolset.RasterOverlap
@@ -9,6 +10,7 @@ namespace MikaelsPolylineToolset.RasterOverlap
     public partial class RasterOverlapWindow : ArcGIS.Desktop.Framework.Controls.ProWindow
     {
         private readonly System.Windows.Forms.TextBox _logTextBox;
+        private CancellationTokenSource _cts;
 
         public RasterOverlapWindow()
         {
@@ -70,11 +72,27 @@ namespace MikaelsPolylineToolset.RasterOverlap
             RunButton.IsEnabled = false;
             CloseButton.IsEnabled = false;
             SetLog(new[] { "Running..." });
+            var cts = new CancellationTokenSource();
+            _cts = cts;
+            CancelButton.Content = "Cancel";
+            CancelButton.IsEnabled = true;
+            CancelButton.Visibility = Visibility.Visible;
+            QcRunProgress run = null;
 
             try
             {
-                var (success, count, messages) = await RasterOverlapService.RunAsync(lineLayer, rasterLayer, interval, outputPath);
+                long records = await QcRunUi.CountAsync(lineLayer);
+                run = QcRunProgress.ForSingle("Raster % Overlap", lineLayer.Name, records, cts.Token);
+                ProgressPanel.Start(run);
+                run.BeginUnit("Raster % Overlap", lineLayer.Name);
+                var progress = run.Current;
+
+                var (success, count, messages) = await RasterOverlapService.RunAsync(lineLayer, rasterLayer, interval, outputPath, run.Current);
                 SetLog(messages);
+            }
+            catch (OperationCanceledException)
+            {
+                SetLog(new[] { "Cancelled." });
             }
             catch (Exception ex)
             {
@@ -82,9 +100,21 @@ namespace MikaelsPolylineToolset.RasterOverlap
             }
             finally
             {
+                run?.EndUnit();
+                ProgressPanel.Stop(cts.IsCancellationRequested ? "Cancelled" : "Finished");
+                CancelButton.Visibility = Visibility.Collapsed;
+                _cts = null;
+                cts.Dispose();
                 RunButton.IsEnabled = true;
                 CloseButton.IsEnabled = true;
             }
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            _cts?.Cancel();
+            CancelButton.IsEnabled = false;
+            CancelButton.Content = "Cancelling...";
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();

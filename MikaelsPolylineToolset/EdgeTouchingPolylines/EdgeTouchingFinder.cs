@@ -1,6 +1,7 @@
 using ArcGIS.Core.Data;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
+using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,18 +21,21 @@ namespace MikaelsPolylineToolset.EdgeTouchingPolylines
             FeatureLayer lineLayer,
             double tolerance,
             bool touchingOnly,
-            Action<string> log)
+            Action<string> log,
+            QcProgress progress = null)
         {
             var geoms = new Dictionary<long, Polyline>();
             var endpoints = new Dictionary<long, (double X, double Y)[]>();
             var env = new Dictionary<long, (double XMin, double YMin, double XMax, double YMax)>();
 
+            progress?.Begin("Reading polylines", QcRunUi.CountNow(lineLayer), 0, 0.2);
             using (var cursor = lineLayer.Search(null))
             {
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
                     long oid = feature.GetObjectID();
+                    progress?.Tick(oid);
                     if (feature.GetShape() is not Polyline shape || shape.IsEmpty || shape.Length == 0)
                         continue;
                     var fp = shape.Points[0];
@@ -100,9 +104,11 @@ namespace MikaelsPolylineToolset.EdgeTouchingPolylines
             var touched = new HashSet<long>();
             var endVertexCache = new Dictionary<long, List<(double X, double Y)>>();
 
+            progress?.Begin("Testing line end points against other lines", endpoints.Count, 0.2, 0.8);
             foreach (var kvp in endpoints)
             {
                 long oidA = kvp.Key;
+                progress?.Tick(oidA);
                 foreach (var (px, py) in kvp.Value)
                 {
                     var cand = new HashSet<long>();

@@ -5,6 +5,7 @@ using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 
 namespace MikaelsPolylineToolset.VertexConditioning
@@ -14,6 +15,7 @@ namespace MikaelsPolylineToolset.VertexConditioning
         private readonly System.Windows.Forms.TextBox _logTextBox;
         private List<VertexConditioningService.FeatureResult> _lastResults;
         private FeatureLayer _lastLayer;
+        private CancellationTokenSource _cts;
 
         public VertexConditioningWindow()
         {
@@ -80,11 +82,22 @@ namespace MikaelsPolylineToolset.VertexConditioning
             ApplyButton.IsEnabled = false;
             CloseButton.IsEnabled = false;
             SetLog(new[] { "Computing preview..." });
+            var cts = new CancellationTokenSource();
+            _cts = cts;
+            CancelButton.Content = "Cancel";
+            CancelButton.IsEnabled = true;
+            CancelButton.Visibility = Visibility.Visible;
+            QcRunProgress run = null;
 
             try
             {
+                long records = await QcRunUi.CountAsync(lineLayer);
+                run = QcRunProgress.ForSingle("Recondition Polyline Vertices", lineLayer.Name, records, cts.Token);
+                ProgressPanel.Start(run);
+                run.BeginUnit("Recondition Polyline Vertices", lineLayer.Name);
+
                 var (results, messages) = await VertexConditioningService.ComputeAsync(
-                    lineLayer, rasterLayer, minSpacing, maxSpacing, searchRadius, selectedOnly);
+                    lineLayer, rasterLayer, minSpacing, maxSpacing, searchRadius, selectedOnly, run.Current);
 
                 _lastResults = results;
                 _lastLayer = lineLayer;
@@ -103,6 +116,11 @@ namespace MikaelsPolylineToolset.VertexConditioning
                 SetLog(messages);
                 ApplyButton.IsEnabled = results.Any(r => r.Changed && !r.Skipped);
             }
+            catch (OperationCanceledException)
+            {
+                SetLog(new[] { "Cancelled." });
+                InvalidateApply();
+            }
             catch (Exception ex)
             {
                 SetLog(new[] { "Error: " + ex.Message });
@@ -110,6 +128,11 @@ namespace MikaelsPolylineToolset.VertexConditioning
             }
             finally
             {
+                run?.EndUnit();
+                ProgressPanel.Stop(cts.IsCancellationRequested ? "Cancelled" : "Finished");
+                CancelButton.Visibility = Visibility.Collapsed;
+                _cts = null;
+                cts.Dispose();
                 PreviewButton.IsEnabled = true;
                 CloseButton.IsEnabled = true;
             }
@@ -154,6 +177,13 @@ namespace MikaelsPolylineToolset.VertexConditioning
                 PreviewButton.IsEnabled = true;
                 CloseButton.IsEnabled = true;
             }
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            _cts?.Cancel();
+            CancelButton.IsEnabled = false;
+            CancelButton.Content = "Cancelling...";
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();

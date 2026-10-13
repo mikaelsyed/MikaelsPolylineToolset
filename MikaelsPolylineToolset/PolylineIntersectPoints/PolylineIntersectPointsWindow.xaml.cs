@@ -2,6 +2,7 @@ using ArcGIS.Desktop.Catalog;
 using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Windows;
 
 namespace MikaelsPolylineToolset.PolylineIntersectPoints
@@ -9,6 +10,7 @@ namespace MikaelsPolylineToolset.PolylineIntersectPoints
     public partial class PolylineIntersectPointsWindow : ArcGIS.Desktop.Framework.Controls.ProWindow
     {
         private readonly System.Windows.Forms.TextBox _logTextBox;
+        private CancellationTokenSource _cts;
 
         public PolylineIntersectPointsWindow()
         {
@@ -72,11 +74,27 @@ namespace MikaelsPolylineToolset.PolylineIntersectPoints
             RunButton.IsEnabled = false;
             CloseButton.IsEnabled = false;
             SetLog(new[] { "Running..." });
+            var cts = new CancellationTokenSource();
+            _cts = cts;
+            CancelButton.Content = "Cancel";
+            CancelButton.IsEnabled = true;
+            CancelButton.Visibility = Visibility.Visible;
+            QcRunProgress run = null;
 
             try
             {
-                var (success, count, messages) = await PolylineIntersectPointsService.RunAsync(lineLayer, polygonLayer, tolerance, outputPath);
+                long records = await QcRunUi.CountAsync(lineLayer, polygonLayer);
+                run = QcRunProgress.ForSingle("Polyline Intersect Points", lineLayer.Name, records, cts.Token);
+                ProgressPanel.Start(run);
+                run.BeginUnit("Polyline Intersect Points", lineLayer.Name);
+                var progress = run.Current;
+
+                var (success, count, messages) = await PolylineIntersectPointsService.RunAsync(lineLayer, polygonLayer, tolerance, outputPath, run.Current);
                 SetLog(messages);
+            }
+            catch (OperationCanceledException)
+            {
+                SetLog(new[] { "Cancelled." });
             }
             catch (Exception ex)
             {
@@ -84,9 +102,21 @@ namespace MikaelsPolylineToolset.PolylineIntersectPoints
             }
             finally
             {
+                run?.EndUnit();
+                ProgressPanel.Stop(cts.IsCancellationRequested ? "Cancelled" : "Finished");
+                CancelButton.Visibility = Visibility.Collapsed;
+                _cts = null;
+                cts.Dispose();
                 RunButton.IsEnabled = true;
                 CloseButton.IsEnabled = true;
             }
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            _cts?.Cancel();
+            CancelButton.IsEnabled = false;
+            CancelButton.Content = "Cancelling...";
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();

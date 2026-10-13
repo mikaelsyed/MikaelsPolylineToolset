@@ -7,6 +7,7 @@ using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 
 namespace MikaelsPolylineToolset.ConvergingEnds
@@ -14,6 +15,7 @@ namespace MikaelsPolylineToolset.ConvergingEnds
     public partial class ConvergingEndsWindow : ArcGIS.Desktop.Framework.Controls.ProWindow
     {
         private readonly System.Windows.Forms.TextBox _logTextBox;
+        private CancellationTokenSource _cts;
 
         public ConvergingEndsWindow()
         {
@@ -66,13 +68,25 @@ namespace MikaelsPolylineToolset.ConvergingEnds
             RunButton.IsEnabled = false;
             CloseButton.IsEnabled = false;
             SetLog(new[] { "Running..." });
+            var cts = new CancellationTokenSource();
+            _cts = cts;
+            CancelButton.Content = "Cancel";
+            CancelButton.IsEnabled = true;
+            CancelButton.Visibility = Visibility.Visible;
+            QcRunProgress run = null;
 
             try
             {
+                long records = await QcRunUi.CountAsync(lineLayer);
+                run = QcRunProgress.ForSingle("Converging Ends", lineLayer.Name, records, cts.Token);
+                ProgressPanel.Start(run);
+                run.BeginUnit("Converging Ends", lineLayer.Name);
+                var progress = run.Current;
+
                 var (count, messages) = await QueuedTask.Run(() =>
                 {
                     var log = new List<string>();
-                    var oids = ConvergingEndFinder.FindConvergingEndOids(lineLayer, tolerance, exactlyTwo, msg => log.Add(msg));
+                    var oids = ConvergingEndFinder.FindConvergingEndOids(lineLayer, tolerance, exactlyTwo, msg => log.Add(msg), progress);
 
                     if (oids.Count > 0)
                         lineLayer.Select(new QueryFilter { ObjectIDs = oids }, SelectionCombinationMethod.New);
@@ -102,15 +116,31 @@ namespace MikaelsPolylineToolset.ConvergingEnds
 
                 SetLog(messages);
             }
+            catch (OperationCanceledException)
+            {
+                SetLog(new[] { "Cancelled." });
+            }
             catch (Exception ex)
             {
                 SetLog(new[] { "Error: " + ex.Message });
             }
             finally
             {
+                run?.EndUnit();
+                ProgressPanel.Stop(cts.IsCancellationRequested ? "Cancelled" : "Finished");
+                CancelButton.Visibility = Visibility.Collapsed;
+                _cts = null;
+                cts.Dispose();
                 RunButton.IsEnabled = true;
                 CloseButton.IsEnabled = true;
             }
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            _cts?.Cancel();
+            CancelButton.IsEnabled = false;
+            CancelButton.Content = "Cancelling...";
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();

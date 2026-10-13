@@ -38,7 +38,7 @@ namespace MikaelsPolylineToolset.ValidateInflowOutflow
         }
 
         public static async Task<(List<PointResult> Results, SpatialReference Sr, List<string> Messages)> ComputeAsync(
-            FeatureLayer lineLayer, FeatureLayer polygonLayer, double tolerance, string typeField, string oceanValue)
+            FeatureLayer lineLayer, FeatureLayer polygonLayer, double tolerance, string typeField, string oceanValue, QcProgress progress = null)
         {
             var messages = new List<string>();
 
@@ -50,7 +50,7 @@ namespace MikaelsPolylineToolset.ValidateInflowOutflow
             await QueuedTask.Run(() =>
             {
                 clusters = PolylineIntersectionCore.ComputeIntersectionClusters(
-                    lineLayer, polygonLayer, tolerance, msg => messages.Add(msg), out sr);
+                    lineLayer, polygonLayer, tolerance, msg => messages.Add(msg), out sr, progress, 0.6);
 
                 using var cursor = polygonLayer.Search(null);
                 while (cursor.MoveNext())
@@ -66,8 +66,10 @@ namespace MikaelsPolylineToolset.ValidateInflowOutflow
                 if (clusters.Count == 0 || polys.Count == 0)
                     return;
 
+                progress?.Begin("Finding the nearest polygon for each intersection point", clusters.Count, 0.6, 0.35);
                 foreach (var cluster in clusters)
                 {
+                    progress?.Tick();
                     string nearestType = "";
                     double nearestDist = double.MaxValue;
                     foreach (var (pg, typeVal) in polys)
@@ -169,9 +171,10 @@ namespace MikaelsPolylineToolset.ValidateInflowOutflow
 
         public static async Task<(bool Success, int Count, int CheckCount, List<string> Messages)> RunAsync(
             FeatureLayer lineLayer, FeatureLayer polygonLayer, double tolerance,
-            string typeField, string oceanValue, string outputPath)
+            string typeField, string oceanValue, string outputPath, QcProgress progress = null)
         {
-            var (results, sr, computeMessages) = await ComputeAsync(lineLayer, polygonLayer, tolerance, typeField, oceanValue);
+            var (results, sr, computeMessages) = await ComputeAsync(lineLayer, polygonLayer, tolerance, typeField, oceanValue, progress);
+            progress?.Working("Writing the output feature class", 0.95, 0.05);
             int checkCount = results.Count(r => r.Status == "CHECK");
 
             if (results.Count == 0)

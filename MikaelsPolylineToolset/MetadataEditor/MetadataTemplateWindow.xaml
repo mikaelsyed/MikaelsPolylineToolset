@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         mc:Ignorable="d"
-        Title="Fill Metadata Template" Height="720" Width="540"
+        Title="Fill Metadata Template" Height="820" Width="600"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
     <Grid Margin="12">
         <Grid.RowDefinitions>
@@ -16,10 +16,36 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
-                   Text="Fills Title, Tags, Summary, Description, and Credits from the values below. You can still edit any field by hand afterward."/>
+                   Text="Fills Title, Tags, Summary, Description, and Credits from the values below. Load the QC output log(s) written by the Polyline QC and Reviewer QC batch tools to fill the QC counts automatically. You can still edit any field by hand afterward."/>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
+                <Border BorderBrush="Gray" BorderThickness="1" Padding="8" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="QC output logs" FontWeight="Bold"/>
+                        <TextBlock TextWrapping="Wrap" Margin="0,2,0,6"
+                                   Text="The batch tools write Polyline_QC_Output_Log.txt and Reviewer_QC_Output_Log.txt (by default in the project folder). Pick one or both to fill the errors and false positives below."/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="LoadLogsButton" Content="Load log file(s)..." Padding="8,2" Click="LoadLogsButton_Click"/>
+                            <Button x:Name="FindLogsButton" Content="Use logs from the project folder" Padding="8,2" Margin="6,0,0,0" Click="FindLogsButton_Click"/>
+                        </StackPanel>
+                        <StackPanel x:Name="PolylineLogPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                            <TextBlock x:Name="PolylineLogText" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="Use results for layer:" Width="140" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="PolylineLogLayerCombo" Width="300" SelectionChanged="PolylineLogLayerCombo_SelectionChanged"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel x:Name="ReviewerLogPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                            <TextBlock x:Name="ReviewerLogText" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="Use results for layer:" Width="140" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="ReviewerLogLayerCombo" Width="300" SelectionChanged="ReviewerLogLayerCombo_SelectionChanged"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -89,11 +115,11 @@
                     <TextBox x:Name="ConvergingEndsErrorsBox" Grid.Row="4" Grid.Column="1" Margin="0,3" Text="0" HorizontalContentAlignment="Center"/>
                     <TextBox x:Name="ConvergingEndsFpBox" Grid.Row="4" Grid.Column="2" Margin="4,3,0,3" Text="0" HorizontalContentAlignment="Center"/>
 
-                    <TextBlock Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Margin="0,3,8,3" Text="N-Valence Junctions (3)"/>
+                    <TextBlock x:Name="NValence3Label" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Margin="0,3,8,3" Text="N-Valence Junctions (3)"/>
                     <TextBox x:Name="NValence3ErrorsBox" Grid.Row="5" Grid.Column="1" Margin="0,3" Text="0" HorizontalContentAlignment="Center"/>
                     <TextBox x:Name="NValence3FpBox" Grid.Row="5" Grid.Column="2" Margin="4,3,0,3" Text="0" HorizontalContentAlignment="Center"/>
 
-                    <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Margin="0,3,8,3" Text="N-Valence Junctions (4)"/>
+                    <TextBlock x:Name="NValence4Label" Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Margin="0,3,8,3" Text="N-Valence Junctions (4)"/>
                     <TextBox x:Name="NValence4ErrorsBox" Grid.Row="6" Grid.Column="1" Margin="0,3" Text="0" HorizontalContentAlignment="Center"/>
                     <TextBox x:Name="NValence4FpBox" Grid.Row="6" Grid.Column="2" Margin="4,3,0,3" Text="0" HorizontalContentAlignment="Center"/>
 
@@ -109,6 +135,11 @@
                     <TextBox x:Name="ValidateInOutErrorsBox" Grid.Row="9" Grid.Column="1" Margin="0,3" Text="0" HorizontalContentAlignment="Center"/>
                     <TextBox x:Name="ValidateInOutFpBox" Grid.Row="9" Grid.Column="2" Margin="4,3,0,3" Text="0" HorizontalContentAlignment="Center"/>
                 </Grid>
+
+                <TextBlock Text="Reviewer QC Tool Output" FontWeight="Bold" Margin="0,14,0,0"/>
+                <TextBlock TextWrapping="Wrap" Margin="0,2,0,4"
+                           Text="Untick 'Use' for checks that don't apply to this feature class (for example the polygon checks when editing a polyline shapefile); they are then left out of the description."/>
+                <Grid x:Name="ReviewerGrid"/>
 
                 <TextBlock Text="Notes:" Margin="0,14,0,4"/>
                 <TextBox x:Name="NotesTextBox" Height="70" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>

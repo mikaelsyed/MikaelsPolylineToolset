@@ -25,7 +25,9 @@ namespace MikaelsPolylineToolset.Common
             FeatureLayer polygonLayer,
             double tolerance,
             Action<string> log,
-            out SpatialReference spatialReference)
+            out SpatialReference spatialReference,
+            QcProgress progress = null,
+            double progressScale = 1.0)
         {
             double? snap = tolerance > 0 ? tolerance : (double?)null;
             SpatialReference sr = null;
@@ -38,12 +40,14 @@ namespace MikaelsPolylineToolset.Common
             }
 
             var lines = new List<(long Oid, Polyline Geom)>();
+            progress?.Begin("Reading polylines", QcRunUi.CountNow(lineLayer), 0, 0.15 * progressScale);
             using (var cursor = lineLayer.Search(null))
             {
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
                     long oid = feature.GetObjectID();
+                    progress?.Tick(oid);
                     if (feature.GetShape() is not Polyline geom || geom.IsEmpty)
                         continue;
                     sr ??= geom.SpatialReference;
@@ -61,11 +65,13 @@ namespace MikaelsPolylineToolset.Common
             // ---- Load polygon boundaries, projected into the line layer's SR, grid-indexed. ----
             var boundaries = new List<Polyline>();
             var polyExtents = new List<Envelope>();
+            progress?.Begin("Reading polygon boundaries", QcRunUi.CountNow(polygonLayer), 0.15 * progressScale, 0.2 * progressScale);
             using (var pcur = polygonLayer.Search(null))
             {
                 while (pcur.MoveNext())
                 {
                     using var f = (Feature)pcur.Current;
+                    progress?.Tick(f.GetObjectID());
                     if (f.GetShape() is not Polygon pg || pg.IsEmpty) continue;
                     if (pg.SpatialReference != null)
                         pg = (Polygon)GeometryEngine.Instance.Project(pg, sr);
@@ -110,8 +116,10 @@ namespace MikaelsPolylineToolset.Common
             // ---- For each line, intersect it with every candidate polygon's boundary. ----
             var clusters = new Dictionary<(long, long), IntersectionCluster>();
 
+            progress?.Begin("Intersecting lines with polygon boundaries", lines.Count, 0.35 * progressScale, 0.65 * progressScale);
             foreach (var (oid, geom) in lines)
             {
+                progress?.Tick(oid);
                 var e = geom.Extent;
                 long c0 = (long)Math.Floor(e.XMin / cell);
                 long c1 = (long)Math.Floor(e.XMax / cell);

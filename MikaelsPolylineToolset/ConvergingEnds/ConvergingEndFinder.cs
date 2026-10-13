@@ -1,6 +1,7 @@
 using ArcGIS.Core.Data;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
+using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 
@@ -24,7 +25,8 @@ namespace MikaelsPolylineToolset.ConvergingEnds
             FeatureLayer lineLayer,
             double tolerance,
             bool exactlyTwo,
-            Action<string> log)
+            Action<string> log,
+            QcProgress progress = null)
         {
             double? snap = tolerance > 0 ? tolerance : (double?)null;
 
@@ -38,12 +40,14 @@ namespace MikaelsPolylineToolset.ConvergingEnds
             var nodes = new Dictionary<(long, long), NodeInfo>();
             int nLines = 0;
 
+            progress?.Begin("Reading polylines", QcRunUi.CountNow(lineLayer), 0, 0.9);
             using (var cursor = lineLayer.Search(null))
             {
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
                     long oid = feature.GetObjectID();
+                    progress?.Tick(oid);
                     if (feature.GetShape() is not Polyline geom || geom.IsEmpty)
                     {
                         log($"OID {oid} has null/empty geometry; skipped.");
@@ -67,8 +71,10 @@ namespace MikaelsPolylineToolset.ConvergingEnds
 
             var selected = new HashSet<long>();
             int badNodes = 0;
+            progress?.Begin("Finding converging end nodes", nodes.Count, 0.9, 0.1);
             foreach (var info in nodes.Values)
             {
+                progress?.Tick();
                 if (info.Starts.Count > 0)
                     continue; // a line continues the flow -> valid
 

@@ -1,7 +1,16 @@
+using System.Collections.Generic;
 using System.Text;
 
 namespace MikaelsPolylineToolset.MetadataEditor
 {
+    /// <summary>One Reviewer QC check's counts for the template description.</summary>
+    internal class ReviewerQcLine
+    {
+        public string Label { get; set; } = "";
+        public int Errors { get; set; }
+        public int FalsePositives { get; set; }
+    }
+
     /// <summary>Values collected by the Fill Template prompt.</summary>
     internal class MetadataTemplateInput
     {
@@ -30,6 +39,16 @@ namespace MikaelsPolylineToolset.MetadataEditor
         public int UnconnectedEndsFalsePositives { get; set; }
         public int ValidateInflowOutflowErrors { get; set; }
         public int ValidateInflowOutflowFalsePositives { get; set; }
+
+        /// <summary>The two N-Valence rows are labelled with the valence the batch run actually used (3 and 4 by default).</summary>
+        public string NValence3Label { get; set; } = "N-Valence Junctions (3)";
+        public string NValence4Label { get; set; } = "N-Valence Junctions (4)";
+
+        /// <summary>The Reviewer QC checks to list (only the ones that apply -- ticked in the template).</summary>
+        public List<ReviewerQcLine> ReviewerLines { get; } = new List<ReviewerQcLine>();
+
+        /// <summary>When QC output logs were loaded: one line per run (date, run time, outcome).</summary>
+        public List<string> QcRuns { get; } = new List<string>();
     }
 
     /// <summary>
@@ -47,32 +66,45 @@ namespace MikaelsPolylineToolset.MetadataEditor
             string tags = t.Process;
             string summary = $"The finalized, {t.Process} polyline shapefile for {t.Subarea}. This is revision {t.Revision}. Completed by {t.Name} on {t.DateLastModified}.";
 
-            var desc = new StringBuilder();
-            desc.AppendLine($"- Last Edited By: {t.Name}");
-            desc.AppendLine($"- Last Date Edited: {t.DateLastModified}");
-            desc.AppendLine("- QC Tool Output:");
-            desc.AppendLine(QcLine("Isolated Lines", t.IsolatedLinesErrors, t.IsolatedLinesFalsePositives));
-            desc.AppendLine(QcLine("Crossing Polylines", t.CrossingPolylinesErrors, t.CrossingPolylinesFalsePositives));
-            desc.AppendLine(QcLine("Overlap Polylines", t.OverlapPolylinesErrors, t.OverlapPolylinesFalsePositives));
-            desc.AppendLine(QcLine("Converging Ends", t.ConvergingEndsErrors, t.ConvergingEndsFalsePositives));
-            desc.AppendLine(QcLine("N-Valence Junctions (3)", t.NValence3Errors, t.NValence3FalsePositives));
-            desc.AppendLine(QcLine("N-Valence Junctions (4)", t.NValence4Errors, t.NValence4FalsePositives));
-            desc.AppendLine(QcLine("Vertex Count Check", t.CulvertVertexCountErrors, t.CulvertVertexCountFalsePositives));
-            desc.AppendLine(QcLine("Unconnected Ends", t.UnconnectedEndsErrors, t.UnconnectedEndsFalsePositives));
-            desc.Append(QcLine("Validate Inflow/Outflow", t.ValidateInflowOutflowErrors, t.ValidateInflowOutflowFalsePositives));
+            var lines = new List<string>
+            {
+                $"- Last Edited By: {t.Name}",
+                $"- Last Date Edited: {t.DateLastModified}",
+                "- QC Tool Output:",
+                QcLine("Isolated Lines", t.IsolatedLinesErrors, t.IsolatedLinesFalsePositives),
+                QcLine("Crossing Polylines", t.CrossingPolylinesErrors, t.CrossingPolylinesFalsePositives),
+                QcLine("Overlap Polylines", t.OverlapPolylinesErrors, t.OverlapPolylinesFalsePositives),
+                QcLine("Converging Ends", t.ConvergingEndsErrors, t.ConvergingEndsFalsePositives),
+                QcLine(t.NValence3Label, t.NValence3Errors, t.NValence3FalsePositives),
+                QcLine(t.NValence4Label, t.NValence4Errors, t.NValence4FalsePositives),
+                QcLine("Vertex Count Check", t.CulvertVertexCountErrors, t.CulvertVertexCountFalsePositives),
+                QcLine("Unconnected Ends", t.UnconnectedEndsErrors, t.UnconnectedEndsFalsePositives),
+                QcLine("Validate Inflow/Outflow", t.ValidateInflowOutflowErrors, t.ValidateInflowOutflowFalsePositives),
+            };
+
+            if (t.ReviewerLines.Count > 0)
+            {
+                lines.Add("- Reviewer QC Tool Output:");
+                foreach (var r in t.ReviewerLines)
+                    lines.Add(QcLine(r.Label, r.Errors, r.FalsePositives));
+            }
+
+            if (t.QcRuns.Count > 0)
+            {
+                lines.Add("- QC Runs:");
+                foreach (var run in t.QcRuns)
+                    lines.Add($"\t- {run}");
+            }
 
             if (!string.IsNullOrWhiteSpace(t.Notes))
-            {
-                desc.AppendLine();
-                desc.Append($"- {t.Notes.Trim()}");
-            }
+                lines.Add($"- {t.Notes.Trim()}");
 
             return new ShapefileMetadata
             {
                 Title = title,
                 Tags = tags,
                 Summary = summary,
-                Description = desc.ToString(),
+                Description = string.Join(System.Environment.NewLine, lines),
                 Credits = t.Name,
                 Constraints = ""
             };

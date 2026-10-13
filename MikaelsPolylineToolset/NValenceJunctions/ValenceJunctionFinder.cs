@@ -1,6 +1,7 @@
 using ArcGIS.Core.Data;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
+using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 
@@ -27,7 +28,8 @@ namespace MikaelsPolylineToolset.NValenceJunctions
             int valence,
             bool onePerJunction,
             double? clusterTolerance,
-            Action<string> log)
+            Action<string> log,
+            QcProgress progress = null)
         {
             double tol;
             if (clusterTolerance.HasValue && clusterTolerance.Value > 0)
@@ -49,12 +51,14 @@ namespace MikaelsPolylineToolset.NValenceJunctions
 
             var endpoints = new List<Endpoint>();
             int lineCount = 0;
+            progress?.Begin("Reading polylines", QcRunUi.CountNow(lineLayer), 0, 0.5);
             using (var cursor = lineLayer.Search(null))
             {
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
                     long oid = feature.GetObjectID();
+                    progress?.Tick(oid);
                     if (feature.GetShape() is not Polyline geom || geom.IsEmpty)
                     {
                         log($"OID {oid} has null/empty geometry; skipped.");
@@ -111,8 +115,10 @@ namespace MikaelsPolylineToolset.NValenceJunctions
                 (-1,-1),(-1,0),(-1,1),(0,-1),(0,0),(0,1),(1,-1),(1,0),(1,1)
             };
 
+            progress?.Begin("Clustering line end points", grid.Count, 0.5, 0.5);
             foreach (var kvp in grid)
             {
+                progress?.Tick();
                 var (cx, cy) = kvp.Key;
                 var members = kvp.Value;
 

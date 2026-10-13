@@ -59,7 +59,7 @@ namespace MikaelsPolylineToolset.MetadataEditor
                 return;
             }
 
-            var templateWindow = new MetadataTemplateWindow { Owner = this };
+            var templateWindow = new MetadataTemplateWindow { Owner = this, TargetPath = ShapefilePathTextBox.Text?.Trim() };
             if (templateWindow.ShowDialog() != true) return;
 
             var result = templateWindow.Result;

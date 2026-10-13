@@ -1,6 +1,7 @@
 using ArcGIS.Core.Data;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
+using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,15 +21,18 @@ namespace MikaelsPolylineToolset.VertexCountCheck
             string fieldName,
             string fieldValue,
             int expected,
-            Action<string> log)
+            Action<string> log,
+            QcProgress progress = null)
         {
             var matched = new List<(long Oid, int VertexCount)>();
 
+            progress?.Begin("Reading polylines and counting vertices", QcRunUi.CountNow(lineLayer), 0, 1);
             using (var cursor = lineLayer.Search(null))
             {
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
+                    progress?.Tick(feature.GetObjectID());
                     var val = feature[fieldName];
                     var display = val?.ToString()?.Trim();
                     if (display != fieldValue) continue;

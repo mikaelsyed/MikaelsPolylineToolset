@@ -1,6 +1,7 @@
 using ArcGIS.Core.Data;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
+using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 
@@ -17,15 +18,18 @@ namespace MikaelsPolylineToolset.OverlapPolylines
             FeatureLayer lineLayer,
             bool exactOnly,
             double minLength,
-            Action<string> log)
+            Action<string> log,
+            QcProgress progress = null)
         {
             var feats = new List<(long Oid, Polyline Geom)>();
+            progress?.Begin("Reading polylines", QcRunUi.CountNow(lineLayer), 0, 0.2);
             using (var cursor = lineLayer.Search(null))
             {
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
                     long oid = feature.GetObjectID();
+                    progress?.Tick(oid);
                     if (feature.GetShape() is not Polyline geom || geom.IsEmpty)
                     {
                         log($"OID {oid} has null/empty geometry; skipped.");
@@ -90,9 +94,11 @@ namespace MikaelsPolylineToolset.OverlapPolylines
             }
 
             var overlapping = new HashSet<long>();
+            progress?.Begin("Comparing each line with its neighbours", n, 0.2, 0.8);
             for (int i = 0; i < n; i++)
             {
                 var (oidI, gI) = feats[i];
+                progress?.Tick(oidI);
                 var eI = gI.Extent;
                 var candidates = new HashSet<int>();
                 foreach (var key in CellsForExtent(eI))

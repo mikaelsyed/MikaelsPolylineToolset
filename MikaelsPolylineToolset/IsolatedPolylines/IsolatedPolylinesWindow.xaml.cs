@@ -8,6 +8,7 @@ using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 
 namespace MikaelsPolylineToolset.IsolatedPolylines
@@ -22,6 +23,7 @@ namespace MikaelsPolylineToolset.IsolatedPolylines
         }
 
         private readonly System.Windows.Forms.TextBox _logTextBox;
+        private CancellationTokenSource _cts;
 
         public IsolatedPolylinesWindow()
         {
@@ -104,13 +106,25 @@ namespace MikaelsPolylineToolset.IsolatedPolylines
             RunButton.IsEnabled = false;
             CloseButton.IsEnabled = false;
             SetLog(new[] { "Running..." });
+            var cts = new CancellationTokenSource();
+            _cts = cts;
+            CancelButton.Content = "Cancel";
+            CancelButton.IsEnabled = true;
+            CancelButton.Visibility = Visibility.Visible;
+            QcRunProgress run = null;
 
             try
             {
+                long records = await QcRunUi.CountAsync(lineLayer, polygonLayer);
+                run = QcRunProgress.ForSingle("Isolated Polylines", lineLayer.Name, records, cts.Token);
+                ProgressPanel.Start(run);
+                run.BeginUnit("Isolated Polylines", lineLayer.Name);
+                var progress = run.Current;
+
                 var (isolatedCount, messages) = await QueuedTask.Run(() =>
                 {
                     var log = new List<string>();
-                    var isolatedOids = IsolatedLineFinder.FindIsolatedLineOids(lineLayer, tolerance, polygonLayer, msg => log.Add(msg));
+                    var isolatedOids = IsolatedLineFinder.FindIsolatedLineOids(lineLayer, tolerance, polygonLayer, msg => log.Add(msg), progress);
 
                     if (isolatedOids.Count > 0)
                         lineLayer.Select(new QueryFilter { ObjectIDs = isolatedOids }, SelectionCombinationMethod.New);
@@ -140,15 +154,31 @@ namespace MikaelsPolylineToolset.IsolatedPolylines
 
                 SetLog(messages);
             }
+            catch (OperationCanceledException)
+            {
+                SetLog(new[] { "Cancelled." });
+            }
             catch (Exception ex)
             {
                 SetLog(new[] { "Error: " + ex.Message });
             }
             finally
             {
+                run?.EndUnit();
+                ProgressPanel.Stop(cts.IsCancellationRequested ? "Cancelled" : "Finished");
+                CancelButton.Visibility = Visibility.Collapsed;
+                _cts = null;
+                cts.Dispose();
                 RunButton.IsEnabled = true;
                 CloseButton.IsEnabled = true;
             }
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            _cts?.Cancel();
+            CancelButton.IsEnabled = false;
+            CancelButton.Content = "Cancelling...";
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)

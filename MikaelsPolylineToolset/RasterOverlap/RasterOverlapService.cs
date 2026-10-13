@@ -31,7 +31,7 @@ namespace MikaelsPolylineToolset.RasterOverlap
         }
 
         public static async Task<(bool Success, int Count, List<string> Messages)> RunAsync(
-            FeatureLayer lineLayer, RasterLayer rasterLayer, double interval, string outputPath)
+            FeatureLayer lineLayer, RasterLayer rasterLayer, double interval, string outputPath, QcProgress progress = null)
         {
             var messages = new List<string>();
             var results = new List<LineResult>();
@@ -72,10 +72,12 @@ namespace MikaelsPolylineToolset.RasterOverlap
                     return pts;
                 }
 
+                progress?.Begin("Sampling each polyline against the raster", QcRunUi.CountNow(lineLayer), 0, 0.9);
                 using var cursor = lineLayer.Search(null);
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
+                    progress?.Tick(feature.GetObjectID());
                     if (feature.GetShape() is not Polyline geom)
                         continue;
                     lineSR ??= geom.SpatialReference;
@@ -109,6 +111,7 @@ namespace MikaelsPolylineToolset.RasterOverlap
                 return (true, 0, messages);
             }
 
+            progress?.Working("Writing the output feature class", 0.9, 0.1);
             var (workspace, name) = GdbOutputHelper.SplitOutputPath(outputPath);
             var (createOk, createMsg) = await GdbOutputHelper.CreateFeatureClassAsync(workspace, name, "POLYLINE", lineSR);
             if (!createOk)

@@ -1,6 +1,7 @@
 using ArcGIS.Core.Data;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
+using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 
@@ -20,19 +21,22 @@ namespace MikaelsPolylineToolset.UnconnectedPolylineEnds
             FeatureLayer lineLayer,
             FeatureLayer polygonLayer,
             double tolerance,
-            Action<string> log)
+            Action<string> log,
+            QcProgress progress = null)
         {
             SpatialReference sr = null;
             var lines = new Dictionary<long, Polyline>();
             var endPts = new Dictionary<long, (double X, double Y)>();
             var lineExtents = new Dictionary<long, Envelope>();
 
+            progress?.Begin("Reading polylines", QcRunUi.CountNow(lineLayer), 0, 0.2);
             using (var cursor = lineLayer.Search(null))
             {
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
                     long oid = feature.GetObjectID();
+                    progress?.Tick(oid);
                     if (feature.GetShape() is not Polyline geom || geom.IsEmpty || geom.Length == 0)
                         continue;
                     sr ??= geom.SpatialReference;
@@ -54,10 +58,12 @@ namespace MikaelsPolylineToolset.UnconnectedPolylineEnds
             var polyExtents = new Dictionary<long, Envelope>();
             if (polygonLayer != null)
             {
+                progress?.Begin("Reading polygon boundaries", QcRunUi.CountNow(polygonLayer), 0.2, 0.15);
                 using var pcur = polygonLayer.Search(null);
                 while (pcur.MoveNext())
                 {
                     using var f = (Feature)pcur.Current;
+                    progress?.Tick(f.GetObjectID());
                     if (f.GetShape() is not Polygon pg || pg.IsEmpty) continue;
                     if (pg.SpatialReference != null && sr != null)
                         pg = (Polygon)GeometryEngine.Instance.Project(pg, sr);
@@ -114,9 +120,11 @@ namespace MikaelsPolylineToolset.UnconnectedPolylineEnds
             var (polyGrid, polyCell) = polyBoundaries.Count > 0 ? BuildGrid(polyExtents) : (new Dictionary<(long, long), List<long>>(), 1.0);
 
             var flagged = new List<long>();
+            progress?.Begin("Checking line end points", endPts.Count, 0.35, 0.65);
             foreach (var kvp in endPts)
             {
                 long oid = kvp.Key;
+                progress?.Tick(oid);
                 var (x, y) = kvp.Value;
                 var pt = MapPointBuilderEx.CreateMapPoint(x, y, sr);
                 bool connected = false;

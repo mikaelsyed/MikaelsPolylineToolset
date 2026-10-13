@@ -1,6 +1,7 @@
 using ArcGIS.Core.Data;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
+using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 
@@ -18,7 +19,8 @@ namespace MikaelsPolylineToolset.IsolatedPolylines
             FeatureLayer lineLayer,
             double tolerance,
             FeatureLayer polygonLayer,
-            Action<string> log)
+            Action<string> log,
+            QcProgress progress = null)
         {
             double? snap = tolerance > 0 ? tolerance : (double?)null;
             SpatialReference sr = null;
@@ -34,12 +36,14 @@ namespace MikaelsPolylineToolset.IsolatedPolylines
             var endpoints = new Dictionary<long, ((long, long) start, (long, long) end)>();
             var nodeXY = new Dictionary<(long, long), MapPoint>();
 
+            progress?.Begin("Reading polylines", QcRunUi.CountNow(lineLayer), 0, polygonLayer != null ? 0.3 : 0.5);
             using (var cursor = lineLayer.Search(null))
             {
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
                     long oid = feature.GetObjectID();
+                    progress?.Tick(oid);
                     if (feature.GetShape() is not Polyline geom || geom.IsEmpty)
                     {
                         log($"OID {oid} has null/empty geometry; skipped.");
@@ -99,11 +103,13 @@ namespace MikaelsPolylineToolset.IsolatedPolylines
             if (usePolys)
             {
                 var polyGeoms = new List<Polygon>();
+                progress?.Begin("Reading anchor polygons", QcRunUi.CountNow(polygonLayer), 0.3, 0.2);
                 using (var pcur = polygonLayer.Search(null))
                 {
                     while (pcur.MoveNext())
                     {
                         using var f = (Feature)pcur.Current;
+                        progress?.Tick(f.GetObjectID());
                         if (f.GetShape() is Polygon pg && !pg.IsEmpty)
                         {
                             // GeometryEngine throws "Incompatible spatial references" if the
@@ -124,8 +130,12 @@ namespace MikaelsPolylineToolset.IsolatedPolylines
                 }
                 else
                 {
+                    progress?.Begin("Building polygon boundaries", polyGeoms.Count, 0.5, 0.1);
                     foreach (var pg in polyGeoms)
+                    {
+                        progress?.Tick();
                         polyBoundaries.Add((Polyline)GeometryEngine.Instance.Boundary(pg));
+                    }
 
                     double sw = 0, sh = 0;
                     foreach (var pg in polyGeoms)
@@ -185,9 +195,11 @@ namespace MikaelsPolylineToolset.IsolatedPolylines
 
             // ---- A line is isolated only if NEITHER endpoint is anchored. ----
             var isolated = new List<long>();
+            progress?.Begin("Checking line end points", endpoints.Count, usePolys ? 0.6 : 0.5, usePolys ? 0.4 : 0.5);
             foreach (var kvp in endpoints)
             {
                 long oid = kvp.Key;
+                progress?.Tick(oid);
                 var (sk, ek) = kvp.Value;
                 if (HasOthersAt(sk, oid) || HasOthersAt(ek, oid))
                     continue;

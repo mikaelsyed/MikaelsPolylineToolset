@@ -4,6 +4,7 @@ using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Editing;
 using ArcGIS.Desktop.Framework.Threading.Tasks;
 using ArcGIS.Desktop.Mapping;
+using MikaelsPolylineToolset.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,7 +51,7 @@ namespace MikaelsPolylineToolset.VertexConditioning
 
         public static async Task<(List<FeatureResult> Results, List<string> Messages)> ComputeAsync(
             FeatureLayer lineLayer, RasterLayer rasterLayer,
-            double minSpacing, double maxSpacing, double searchRadius, bool selectedOnly)
+            double minSpacing, double maxSpacing, double searchRadius, bool selectedOnly, QcProgress progress = null)
         {
             var messages = new List<string>();
             var results = new List<FeatureResult>();
@@ -147,12 +148,14 @@ namespace MikaelsPolylineToolset.VertexConditioning
                     filter = new QueryFilter { ObjectIDs = selOids };
                 }
 
+                progress?.Begin("Reconditioning polylines", selectedOnly ? lineLayer.GetSelection().GetCount() : QcRunUi.CountNow(lineLayer), 0, 1);
                 using var cursor = lineLayer.Search(filter);
                 int processed = 0;
                 while (cursor.MoveNext())
                 {
                     using var feature = (Feature)cursor.Current;
                     var oid = feature.GetObjectID();
+                    progress?.Tick(oid);
                     if (feature.GetShape() is not Polyline original || original.IsEmpty)
                         continue;
                     processed++;

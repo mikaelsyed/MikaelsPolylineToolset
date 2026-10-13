@@ -25,7 +25,7 @@ namespace MikaelsPolylineToolset.PolylineIntersectPoints
     internal static class PolylineIntersectPointsService
     {
         public static async Task<(List<PolylineIntersectionCore.IntersectionCluster> Clusters, SpatialReference Sr, List<string> Messages)> ComputeAsync(
-            FeatureLayer lineLayer, FeatureLayer polygonLayer, double tolerance)
+            FeatureLayer lineLayer, FeatureLayer polygonLayer, double tolerance, QcProgress progress = null)
         {
             var messages = new List<string>();
             List<PolylineIntersectionCore.IntersectionCluster> clusters = null;
@@ -33,7 +33,7 @@ namespace MikaelsPolylineToolset.PolylineIntersectPoints
             await QueuedTask.Run(() =>
             {
                 clusters = PolylineIntersectionCore.ComputeIntersectionClusters(
-                    lineLayer, polygonLayer, tolerance, msg => messages.Add(msg), out sr);
+                    lineLayer, polygonLayer, tolerance, msg => messages.Add(msg), out sr, progress, 0.95);
             });
             return (clusters, sr, messages);
         }
@@ -87,9 +87,10 @@ namespace MikaelsPolylineToolset.PolylineIntersectPoints
         }
 
         public static async Task<(bool Success, int Count, List<string> Messages)> RunAsync(
-            FeatureLayer lineLayer, FeatureLayer polygonLayer, double tolerance, string outputPath)
+            FeatureLayer lineLayer, FeatureLayer polygonLayer, double tolerance, string outputPath, QcProgress progress = null)
         {
-            var (clusters, sr, computeMessages) = await ComputeAsync(lineLayer, polygonLayer, tolerance);
+            var (clusters, sr, computeMessages) = await ComputeAsync(lineLayer, polygonLayer, tolerance, progress);
+            progress?.Working("Writing the output feature class", 0.95, 0.05);
             var (success, writeMessages) = await WriteOutputAsync(clusters, sr, outputPath);
             computeMessages.AddRange(writeMessages);
             return (success, clusters.Count, computeMessages);
